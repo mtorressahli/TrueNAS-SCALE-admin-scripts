@@ -65,3 +65,4 @@ do
     echo "Warning: Differences found between $NEW_MOUNTPOINT and $DATASET. Skipping delete."
   fi
 done
+
