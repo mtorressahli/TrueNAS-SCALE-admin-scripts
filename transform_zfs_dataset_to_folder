@@ -24,6 +24,9 @@ while [ "$1" != "" ]; do
     shift
 done
 
+# Get the absolute path of the parent dataset
+PARENT_DATASET_PATH=$(sudo zfs get -H -o value mountpoint $PARENT_DATASET)
+
 # Get a list of all child datasets
 CHILD_DATASETS="$(sudo zfs list -r -H -o name $PARENT_DATASET)"
 
@@ -43,15 +46,19 @@ do
     sudo zfs rename $DATASET $NEW_MOUNTPOINT
   fi
 
+  # Get the absolute path of the old and new mountpoints
+  OLD_MOUNTPOINT_PATH=$(sudo zfs get -H -o value mountpoint $NEW_MOUNTPOINT)
+  NEW_MOUNTPOINT_PATH=$(sudo zfs get -H -o value mountpoint $DATASET)
+
   # Copy the contents of the old mountpoint to the new mountpoint
   if [ $DRY_RUN -eq 1 ]; then
-    echo "DRY RUN: sudo rsync -a --delete --no-perms $NEW_MOUNTPOINT/ $DATASET/"
+    echo "DRY RUN: sudo rsync -a --delete --no-perms $OLD_MOUNTPOINT_PATH/ $NEW_MOUNTPOINT_PATH/"
   else
-    sudo rsync -a --delete --no-perms $NEW_MOUNTPOINT/ $DATASET/
+    sudo rsync -a --delete --no-perms $OLD_MOUNTPOINT_PATH/ $NEW_MOUNTPOINT_PATH/
   fi
 
   # Check if there are any differences between the old and new mountpoints
-  diff_output="$(diff -r $NEW_MOUNTPOINT $DATASET)"
+    diff_output="$(diff -r $OLD_MOUNTPOINT_PATH $NEW_MOUNTPOINT_PATH)"
 
   if [ -z "$diff_output" ]; then
     # Destroy the old mountpoint if there are no differences
@@ -65,4 +72,3 @@ do
     echo "Warning: Differences found between $NEW_MOUNTPOINT and $DATASET. Skipping delete."
   fi
 done
-
