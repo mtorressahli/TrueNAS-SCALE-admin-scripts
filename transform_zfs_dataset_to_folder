@@ -46,9 +46,15 @@ do
     sudo zfs rename $DATASET $NEW_MOUNTPOINT
   fi
 
-  # Get the absolute path of the old and new mountpoints
+  # Get the absolute path of the old mountpoint
   OLD_MOUNTPOINT_PATH=$(sudo zfs get -H -o value mountpoint $DATASET)
-  NEW_MOUNTPOINT_PATH=$(sudo zfs get -H -o value mountpoint $NEW_MOUNTPOINT)
+
+  # Get the absolute path of the new mountpoint
+  if [ $DRY_RUN -eq 1 ]; then
+    NEW_MOUNTPOINT_PATH=$(echo $OLD_MOUNTPOINT_PATH | sed "s|$PARENT_DATASET_PATH|$PARENT_DATASET_PATH/converted|")
+  else
+    NEW_MOUNTPOINT_PATH=$(sudo zfs get -H -o value mountpoint $NEW_MOUNTPOINT)
+  fi
 
   # Copy the contents of the old mountpoint to the new mountpoint
   if [ $DRY_RUN -eq 1 ]; then
@@ -63,9 +69,9 @@ do
   if [ -z "$diff_output" ]; then
     # Destroy the old mountpoint if there are no differences
     if [ $DRY_RUN -eq 1 ]; then
-      echo "DRY RUN: sudo zfs destroy $DATASET"
+      echo "DRY RUN: sudo zfs destroy $NEW_MOUNTPOINT"
     else
-      sudo zfs destroy $DATASET
+      sudo zfs destroy $NEW_MOUNTPOINT
     fi
   else
     # Print a warning message and skip deleting the old mountpoint if there are differences
